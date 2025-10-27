@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Проекты - Time Tracker{% endblock %}
+
+{% block content %}
+<div class="projects-page">
+    <div class="page-header">
+        <h1>📁 Управление проектами</h1>
+        <p>Организуйте ваши задачи по проектам</p>
+    </div>
+
+    <!-- Форма создания проекта -->
+    <div class="create-project-section">
+        <div class="section-card">
+            <h2>➕ Создать новый проект</h2>
+            <form id="create-project-form" class="project-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="project-name">Название проекта *</label>
+                        <input type="text" id="project-name" name="name" required
+                               placeholder="Например: Веб-разработка">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="project-color">Цвет проекта</label>
+                        <input type="color" id="project-color" name="color" value="#3498db">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="project-description">Описание (необязательно)</label>
+                    <textarea id="project-description" name="description" rows="3"
+                              placeholder="Описание проекта..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">
+                        ✅ Создать проект
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Список проектов -->
+    <div class="projects-section">
+        <h2>📋 Ваши проекты</h2>
+
+        <div id="projects-list" class="projects-grid">
+            {% for project in projects %}
+            <div class="project-card" style="border-left-color: {{ project.color }};">
+                <div class="project-header">
+                    <h3>{{ project.name }}</h3>
+                    <button class="btn-delete" onclick="deleteProject('{{ project.id }}')"
+                            title="Удалить проект">
+                        🗑️
+                    </button>
+                </div>
+
+                {% if project.description %}
+                <p class="project-description">{{ project.description }}</p>
+                {% endif %}
+
+                <div class="project-meta">
+                    <span class="project-date">
+                        📅 Создан: {{ project.created_at.strftime('%d.%m.%Y') }}
+                    </span>
+                    <span class="project-status {{ 'active' if project.is_active else 'inactive' }}">
+                        {{ '✅ Активен' if project.is_active else '❌ Неактивен' }}
+                    </span>
+                </div>
+
+                <div class="project-color">
+                    <span class="color-label">Цвет:</span>
+                    <span class="color-preview" style="background-color: {{ project.color }}"></span>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📁</div>
+                <h3>Проектов пока нет</h3>
+                <p>Создайте первый проект для организации ваших задач</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+async function deleteProject(projectId) {
+    if (!confirm('Вы уверены, что хотите удалить этот проект? Все связанные записи времени останутся, но будут без проекта.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/projects/${projectId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Ошибка при удалении проекта: ' + result.error);
+        }
+    } catch (error) {
+        alert('Ошибка при удалении проекта');
+    }
+}
+
+// Обработка формы создания проекта
+document.getElementById('create-project-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    try {
+        const response = await fetch('/api/projects/create', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Ошибка при создании проекта: ' + result.error);
+        }
+    } catch (error) {
+        alert('Ошибка при создании проекта');
+    }
+});
+</script>
+{% endblock %}

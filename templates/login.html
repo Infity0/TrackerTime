@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - Time Tracker{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>⏱️</h1>
+            <h2>Добро пожаловать</h2>
+            <p>Войдите в свой аккаунт</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+            <div class="form-group">
+                <label for="username">Имя пользователя:</label>
+                <input type="text" id="username" name="username" required
+                       placeholder="Введите ваше имя пользователя">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password" required
+                       placeholder="Введите ваш пароль">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large">
+                Войти в систему
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрируйтесь</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

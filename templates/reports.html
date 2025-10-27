@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Отчеты - Time Tracker{% endblock %}
+
+{% block content %}
+<div class="reports-page">
+    <!-- Hero Section -->
+    <div class="reports-hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Аналитика времени</h1>
+            <p class="hero-subtitle">Детальная статистика вашей продуктивности</p>
+        </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="reports-controls">
+        <div class="controls-main">
+            <div class="control-group">
+                <label class="control-label">Период анализа</label>
+                <select id="period-select" class="control-select">
+                    <option value="7">7 дней</option>
+                    <option value="14">14 дней</option>
+                    <option value="30" selected>30 дней</option>
+                    <option value="90">3 месяца</option>
+                    <option value="180">6 месяцев</option>
+                    <option value="365">Год</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Тип отчета</label>
+                <select id="report-type" class="control-select">
+                    <option value="overview">Общий обзор</option>
+                    <option value="projects">По проектам</option>
+                    <option value="daily">По дням</option>
+                    <option value="productivity">Продуктивность</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="controls-actions">
+            <button id="refresh-btn" class="btn btn-secondary">
+                🔄 Обновить
+            </button>
+            <button id="export-btn" class="btn btn-outline">
+                📊 Экспорт
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading-indicator" class="reports-loading" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-content">
+            <h3>Загружаем данные</h3>
+            <p>Подготавливаем вашу аналитику...</p>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" class="alert alert-error" style="display: none;">
+        <span id="error-text"></span>
+    </div>
+
+    <!-- Main Content -->
+    <div id="reports-content" style="display: none;">
+        <!-- Overview Report (default) -->
+        <section id="overview-report" class="report-section">
+            <!-- Key Metrics Section -->
+            <section class="metrics-section">
+                <div class="metrics-header">
+                    <div class="metrics-title">
+                        <h2>Ключевые показатели</h2>
+                        <p class="metrics-subtitle">Обзор вашей продуктивности за выбранный период</p>
+                    </div>
+                    <div class="period-badge" id="period-badge">30 дней</div>
+                </div>
+
+                <div id="summary-cards" class="metrics-grid">
+                    <!-- Cards will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <!-- Main Chart -->
+                <div class="chart-main">
+                    <div class="chart-card featured">
+                        <div class="chart-header">
+                            <h3>📊 Распределение по проектам</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="projects-chart"></canvas>
+                        </div>
+                        <div class="chart-legend" id="projects-legend"></div>
+                    </div>
+                </div>
+
+                <!-- Secondary Charts -->
+                <div class="chart-secondary">
+                    <div class="chart-row">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>📈 Ежедневная активность</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="daily-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>⏰ Активность по времени суток</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="hourly-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-row">
+                        <div class="chart-card full-width">
+                            <div class="chart-header">
+                                <h3>🚀 Продуктивность по неделям</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="weekly-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Details Table -->
+            <section class="details-section">
+                <div class="section-header">
+                    <h2>📋 Детализация записей</h2>
+                    <div class="section-info">
+                        <span class="entries-count" id="entries-count">0 записей</span>
+                        <button class="btn-text" id="toggle-details">
+                            Свернуть
+                        </button>
+                    </div>
+                </div>
+
+                <div class="details-content" id="details-content">
+                    <div class="table-container">
+                        <table id="entries-table" class="details-table">
+                            <thead>
+                                <tr>
+                                    <th class="column-date">Дата</th>
+                                    <th class="column-time">Время</th>
+                                    <th class="column-project">Проект</th>
+                                    <th class="column-description">Описание</th>
+                                    <th class="column-duration">Продолжительность</th>
+                                </tr>
+                            </thead>
+                            <tbody id="entries-tbody">
+                                <!-- Data loaded via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="no-entries-message" class="no-data-state" style="display: none;">
+                        <h3>Нет данных за выбранный период</h3>
+                        <p>Начните отслеживать время, чтобы увидеть здесь статистику</p>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- Projects Report -->
+        <section id="projects-report" class="report-section" style="display: none;">
+            <section class="metrics-section">
+                <div class="metrics-header">
+                    <div class="metrics-title">
+                        <h2>📁 Аналитика по проектам</h2>
+                        <p class="metrics-subtitle">Распределение времени между проектами</p>
+                    </div>
+                    <div class="period-badge" id="projects-period-badge">30 дней</div>
+                </div>
+
+                <div id="projects-summary-cards" class="metrics-grid compact">
+                    <!-- Project-specific cards will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <section class="charts-section">
+                <div class="chart-main">
+                    <div class="chart-card featured">
+                        <div class="chart-header">
+                            <h3>📊 Распределение времени по проектам</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="projects-detail-chart"></canvas>
+                        </div>
+                        <div class="chart-legend" id="projects-detail-legend"></div>
+                    </div>
+                </div>
+
+                <div class="chart-secondary">
+                    <div class="chart-card full-width">
+                        <div class="chart-header">
+                            <h3>📈 Прогресс по проектам</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="projects-progress-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- Daily Report -->
+        <section id="daily-report" class="report-section" style="display: none;">
+            <section class="metrics-section">
+                <div class="metrics-header">
+                    <div class="metrics-title">
+                        <h2>📅 Ежедневная аналитика</h2>
+                        <p class="metrics-subtitle">Динамика работы по дням</p>
+                    </div>
+                    <div class="period-badge" id="daily-period-badge">30 дней</div>
+                </div>
+
+                <div id="daily-summary-cards" class="metrics-grid">
+                    <!-- Daily-specific cards will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <section class="charts-section">
+                <div class="chart-main">
+                    <div class="chart-card featured">
+                        <div class="chart-header">
+                            <h3>📈 Активность по дням</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="daily-detail-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-secondary">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>📊 Тенденции</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="daily-trend-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>🎯 Сравнение дней</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="daily-comparison-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- Productivity Report -->
+        <section id="productivity-report" class="report-section" style="display: none;">
+            <section class="metrics-section">
+                <div class="metrics-header">
+                    <div class="metrics-title">
+                        <h2>🚀 Анализ продуктивности</h2>
+                        <p class="metrics-subtitle">Эффективность и рабочие привычки</p>
+                    </div>
+                    <div class="period-badge" id="productivity-period-badge">30 дней</div>
+                </div>
+
+                <div id="productivity-summary-cards" class="metrics-grid">
+                    <!-- Productivity-specific cards will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <section class="charts-section">
+                <div class="chart-main">
+                    <div class="chart-card featured">
+                        <div class="chart-header">
+                            <h3>⏰ Распределение активности по времени суток</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="productivity-hourly-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-secondary">
+                    <div class="chart-card full-width">
+                        <div class="chart-header">
+                            <h3>📈 Продуктивность по неделям</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="productivity-weekly-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="details-section">
+                <div class="section-header">
+                    <h2>📊 Статистика сессий</h2>
+                </div>
+                <div class="details-content">
+                    <div id="session-stats" class="metrics-grid compact">
+                        <!-- Session stats will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+        </section>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+{% endblock %}
